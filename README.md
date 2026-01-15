@@ -1,8 +1,8 @@
-# DexterousHands Environment Server (Dockerized)
+# DexterousHands Environment Server
 
 This repository serves as a **Dockerized environment server** for training and testing dexterous manipulation tasks, modified from [PKU-MARL/DexterousHands](https://github.com/PKU-MARL/DexterousHands).
 
-It is designed to run with **NVIDIA Isaac Gym** (preview 4) and includes a custom server script (`server_env.py`) for external communication.
+It is designed to run with **NVIDIA Isaac Gym** and includes a custom server script (`server_env.py`) for external communication.
 
 ## 🚀 Setup & Installation Guide
 
@@ -42,21 +42,26 @@ docker run -d \
 ```
 
 * **`-v $(pwd):/data`**: Maps the host current directory to `/data` in the container.
-* **`-p 5901:5901`**: VNC Port (Connect via `localhost:5901`, password: `password`).
+* **`-p 5901:5901`**: VNC Port for visual monitoring.
+* **`-p 5000:5000`**: Server communication port.
 
-### 3. Install Python Dependencies (Inside Container)
+### 3. Setup Inside Container (Important)
 
-Since the code and Isaac Gym are mounted from the host, you need to manually install them **once** inside the container.
+You need to set your VNC password and install the dependencies manually once inside the container.
 
 ```bash
 # 1. Enter the container
 docker exec -it bidexhands /bin/bash
 
-# 2. Install Isaac Gym (Essential)
+# 2. Set VNC Password (REQUIRED)
+# Run this command and set your own password for remote connection
+vncpasswd
+
+# 3. Install Isaac Gym
 cd /data/isaacgym/python
 pip install -e .
 
-# 3. Install DexterousHands Environment
+# 4. Install DexterousHands Environment
 # (Assuming you cloned this repo into 'DexterousHands-Env-Server' folder)
 cd /data/DexterousHands-Env-Server
 pip install -e .
@@ -71,5 +76,15 @@ After installation, you can run the server script.
 # Inside the container:
 cd /data/DexterousHands-Env-Server
 python server_env.py
+
+```
+
+### 5. Connect via VNC (Visual Monitor)
+
+You can view the simulation GUI remotely.
+
+1. Open your **VNC Viewer**.
+2. Connect to: `localhost:5901`
+3. Password: **The password you set in Step 3.**
 
 ```
