@@ -1,7 +1,7 @@
 # if given, will override the device setting in gym. 
 env: 
   env_name: "shadow_hand_over"
-  numEnvs: 128
+  numEnvs: 4096
   envSpacing: 0.75
   episodeLength: 75
   enableDebugVis: False
@@ -37,7 +37,7 @@ env:
   handAgentIndex: "[[0, 1, 2, 3, 4, 5]]"
   asymmetric_observations: False
   successTolerance: 0.1
-  printNumSuccesses: False
+  printNumSuccesses: True 
   maxConsecutiveSuccesses: 0
 
   asset:
@@ -48,7 +48,7 @@ env:
     assetFileNamePen: "mjcf/open_ai_assets/hand/pen.xml"
 
 task:
-  randomize: False
+  randomize: False 
   randomization_params:
     frequency: 600   # Define how many simulation steps between generating new randomizations
     observations:

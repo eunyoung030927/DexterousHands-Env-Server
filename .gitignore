@@ -136,3 +136,17 @@ bidexhands/runs
 assets/dataset
 
 bidexhands.egg-info
+
+
+# issac gym
+isaacgym/
+*.tar.gz
+
+# Python cache files
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# wandb files
+wandb/
+*/wandb/
