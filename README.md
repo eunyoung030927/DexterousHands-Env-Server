@@ -87,4 +87,33 @@ You can view the simulation GUI remotely.
 2. Connect to: `localhost:5901`
 3. Password: **The password you set in Step 3.**
 
+
+
+
+
+## ℹ️ Troubleshooting
+
+### 1. Client-Server Connection (Network Setup)
+If the external client (e.g., `sb3-diffusion`) cannot connect to the server, you need to manually configure the IP address.
+
+**Step 1: Get the Server Container IP**
+Run this command on your host machine to find the IP of the running container:
+```bash
+docker inspect bidexhands | grep IPAddress
+# Output Example: "IPAddress": "172.17.0.2"
+
+```
+
+**Step 2: Update Client Code**
+Open the file `sb3-diffusion/sb3_diffusion/common/env_utils.py` in your client repository.
+Find the `case "bidexhands":` block and update `SERVER_IP` with the address found above.
+
+```python
+# sb3_diffusion/common/env_utils.py
+
+case "bidexhands":
+    # ⚠️ Update this with your container's actual IP
+    SERVER_IP = "172.17.0.x"  
+    PORT = 5000
+
 ```
