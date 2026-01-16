@@ -162,6 +162,18 @@ def run_server():
                     # --- STEP ---
                     # Client sends action as NumPy array: (action_dim,)
                     # Isaac Gym expects (num_envs, action_dim)
+
+                    current_mass_str = "N/A" # default value
+                    try:
+                        env_ptr = task.envs[0]
+                        actor_handle = task.gym.find_actor_handle(env_ptr, "object")
+                        if actor_handle != isaacgym.gymapi.INVALID_HANDLE:
+                            props = task.gym.get_actor_rigid_body_properties(env_ptr, actor_handle)
+                            if len(props) > 0:
+                                current_mass_str = f"{props[0].mass:.4f} kg"
+                    except:
+                        pass # ignore errors in mass retrieval
+
                     action_array = np.array(data, dtype=np.float32)
                     action_tensor = torch.tensor(action_array, dtype=torch.float, device=device).unsqueeze(0)
                     
@@ -181,8 +193,8 @@ def run_server():
                     truncated = False  # Isaac Gym does not clearly separate truncation
                     info = {}  # Convert tensors inside info_dict if needed
 
-                    response = ("ok", (obs, rew, terminated, truncated, info))
-                    print(f"[CMD] step done, obs shape: {obs.shape}, reward: {rew:.4f}")
+                    response = ("ok", (obs, rew, terminated, truncated, info, current_mass_str))
+                    print(f"[CMD] step done | Mass: {current_mass_str} | Reward: {rew:.4f} | Obs: {obs.shape}")
 
                 elif cmd == "close":
                     print("Server shutting down (client requested)...")

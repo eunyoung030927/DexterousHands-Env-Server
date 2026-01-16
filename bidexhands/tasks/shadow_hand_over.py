@@ -938,6 +938,26 @@ class ShadowHandOver(BaseTask):
         Args:
             actions (tensor): Actions of agents in the all environment 
         """
+
+        # [DEBUG] Code to check mass
+        # Execute every 100 frames (approx. 1 second)
+        if self.gym.get_frame_count(self.sim) % 100 == 0:
+            # Get environment 0
+            env_ptr = self.envs[0]
+            
+            # 1. Find the actor handle named "object"
+            # (We can find it because it was created with the name "object" in the _create_envs function)
+            actor_handle = self.gym.find_actor_handle(env_ptr, "object")
+            
+            if actor_handle != gymapi.INVALID_HANDLE:
+                # 2. Get the rigid body properties of the actor
+                props = self.gym.get_actor_rigid_body_properties(env_ptr, actor_handle)
+                
+                # 3. Print mass if properties exist
+                if len(props) > 0:
+                    mass = props[0].mass
+                    print(f">>> [DEBUG] Step: {self.gym.get_frame_count(self.sim)} | Current Mass: {mass:.4f} kg")
+
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         goal_env_ids = self.reset_goal_buf.nonzero(as_tuple=False).squeeze(-1)
 
