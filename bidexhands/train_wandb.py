@@ -11,6 +11,7 @@ from ast import arg
 import numpy as np
 import random
 import wandb
+import os
 
 from bidexhands.utils.config import set_np_formatting, set_seed, get_args, parse_sim_params, load_cfg
 from bidexhands.utils.parse_task import parse_task
@@ -33,6 +34,7 @@ def train():
         "Unrecognized algorithm!\nAlgorithm should be one of: [happo, hatrpo, mappo,ippo, \
             maddpg,sac,td3,trpo,ppo,ddpg, mtppo, random, mamlppo, td3_bc, bcq, iql, ppo_collect]"
 
+    wandb.tensorboard.patch(root_logdir="./logs")
     wandb.init(
         project="Bi-DexHands",
         name=f"{args.task}_{args.algo}",
@@ -41,6 +43,13 @@ def train():
         monitor_gym=True,
         save_code=True
     )
+    cfg_base_path = "./cfg"
+    algo_config_path = os.path.join(cfg_base_path, args.algo, "config.yaml")
+    task_config_path = os.path.join(cfg_base_path, f"{args.task}.yaml")
+    print(f"Uploading configs: {algo_config_path}, {task_config_path}")
+    wandb.save(algo_config_path, policy="now")
+    wandb.save(task_config_path, policy="now") 
+
 
     algo = args.algo
     if args.algo in MARL_ALGOS: 
