@@ -974,6 +974,18 @@ class ShadowHandCatchOver2Underarm(BaseTask):
         Args:
             actions (tensor): Actions of agents in the all environment 
         """
+
+        # [DEBUG] Code to check mass
+        # Execute every 100 frames (approx. 1 second)
+        if self.gym.get_frame_count(self.sim) % 100 == 0:
+            env_ptr = self.envs[0]
+            actor_handle = self.gym.find_actor_handle(env_ptr, "object")
+            if actor_handle != gymapi.INVALID_HANDLE:
+                props = self.gym.get_actor_rigid_body_properties(env_ptr, actor_handle)
+                if len(props) > 0:
+                    mass = props[0].mass
+                    print(f">>> [DEBUG] Step: {self.gym.get_frame_count(self.sim)} | Current Mass: {mass:.4f} kg")
+
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         goal_env_ids = self.reset_goal_buf.nonzero(as_tuple=False).squeeze(-1)
 
