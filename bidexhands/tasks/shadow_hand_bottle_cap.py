@@ -118,6 +118,7 @@ class ShadowHandBottleCap(BaseTask):
             "pen": "mjcf/open_ai_assets/hand/pen.xml",
             # "pot": "mjcf/pot.xml",
             "pot": "mjcf/bottle_cap/mobility.urdf"
+            # "pot": "mjcf/bottle_cap/bottle.xml"
         }
 
         if "asset" in self.cfg["env"]:

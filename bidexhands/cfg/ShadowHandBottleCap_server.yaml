@@ -38,7 +38,7 @@ env:
   objectType: "pot" # can be block, egg or pen
   observationType: "full_state" # point_cloud or full_state
   handAgentIndex: "[[0, 1, 2, 3, 4, 5]]"
-  asymmetric_observations: True
+  asymmetric_observations: True # for server env
   successTolerance: 0.1
   printNumSuccesses: False
   maxConsecutiveSuccesses: 0

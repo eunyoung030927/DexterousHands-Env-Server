@@ -15,19 +15,19 @@ learn:
   print_log: True
 
   # rollout params
-  max_iterations: 6500
+  max_iterations: 6500 # shadow_hand_bottle_cap env 
 
   # training params
   cliprange: 0.2
-  ent_coef: 0
-  nsteps: 8
+  ent_coef: 0.005 # 0 # shadow_hand_bottle_cap env
+  nsteps: 200 # 8 # shadow_hand_bottle_cap env
   noptepochs: 5
-  nminibatches: 4 # this is per agent
+  nminibatches: 16 # 4 # this is per agent
   max_grad_norm: 1
   optim_stepsize: 3.e-4 # 3e-4 is default for single agent training with constant schedule
   schedule: adaptive # could be adaptive or linear or fixed
   desired_kl: 0.016
-  gamma: 0.96
+  gamma: 0.99 # 0.96 # shadow_hand_bottle_cap env
   lam: 0.95
   init_noise_std: 0.8
 

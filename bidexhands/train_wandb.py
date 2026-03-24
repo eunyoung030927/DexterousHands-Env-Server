@@ -12,6 +12,7 @@ import numpy as np
 import random
 import wandb
 import os
+import glob
 
 from bidexhands.utils.config import set_np_formatting, set_seed, get_args, parse_sim_params, load_cfg
 from bidexhands.utils.parse_task import parse_task
@@ -36,7 +37,8 @@ def train():
 
     wandb.tensorboard.patch(root_logdir="./logs")
     wandb.init(
-        project="Bi-DexHands",
+        project=f"BiDex_{args.task}",
+        # name=f"{args.algo}", 
         name=f"{args.task}_{args.algo}",
         config={**vars(args), **cfg_train},
         sync_tensorboard=True, # to automatically upload and visualize TensorBoard logs

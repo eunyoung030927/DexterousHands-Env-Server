@@ -39,7 +39,7 @@ env:
   handAgentIndex: "[[0, 1, 2, 3, 4, 5]]"
   asymmetric_observations: False
   successTolerance: 0.1
-  printNumSuccesses: False # do not print during testing  
+  printNumSuccesses: True # do not print during testing  
   maxConsecutiveSuccesses: 0
 
   asset:
@@ -57,19 +57,19 @@ task: # randomize object mass
       object:
         rigid_body_properties:
           mass: 
-            range: [1.0, 5.0]
+            range: [1.0, 5.0] # default mass: 100g 
             operation: "scaling"
             distribution: "uniform"
             schedule: "constant" # train with linear schedule, test with constant schedule
             schedule_steps: 0
-        rigid_shape_properties:
-          friction:
-            num_buckets: 250
-            range: [0.7, 1.3]
-            operation: "scaling"
-            distribution: "uniform"
-            schedule: "constant"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
-            schedule_steps: 0   
+        # rigid_shape_properties:
+        #   friction:
+        #     num_buckets: 250
+        #     range: [0.7, 1.3]
+        #     operation: "scaling"
+        #     distribution: "uniform"
+        #     schedule: "constant"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
+        #     schedule_steps: 0   
 
 sim:
   substeps: 2

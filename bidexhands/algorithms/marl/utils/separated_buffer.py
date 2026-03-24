@@ -7,7 +7,7 @@ def _flatten(T, N, x):
     return x.reshape(T * N, *x.shape[2:])
 
 def _cast(x):
-    return x.transpose(1,0,2).reshape(-1, *x.shape[2:])
+    return x.permute(1,0,2).reshape(-1, *x.shape[2:])
 
 class SeparatedReplayBuffer(object):
     def __init__(self, config, obs_space, share_obs_space, act_space, device):
@@ -325,8 +325,8 @@ class SeparatedReplayBuffer(object):
         sampler = [rand[i*mini_batch_size:(i+1)*mini_batch_size] for i in range(num_mini_batch)]
 
         if len(self.share_obs.shape) > 3:
-            share_obs = self.share_obs[:-1].transpose(1, 0, 2, 3, 4).reshape(-1, *self.share_obs.shape[2:])
-            obs = self.obs[:-1].transpose(1, 0, 2, 3, 4).reshape(-1, *self.obs.shape[2:])
+            share_obs = self.share_obs[:-1].permute(1, 0, 2, 3, 4).reshape(-1, *self.share_obs.shape[2:])
+            obs = self.obs[:-1].permute(1, 0, 2, 3, 4).reshape(-1, *self.obs.shape[2:])
         else:
             share_obs = _cast(self.share_obs[:-1])
             obs = _cast(self.obs[:-1])
@@ -342,8 +342,8 @@ class SeparatedReplayBuffer(object):
             factor = _cast(self.factor)
         # rnn_states = _cast(self.rnn_states[:-1])
         # rnn_states_critic = _cast(self.rnn_states_critic[:-1])
-        rnn_states = self.rnn_states[:-1].transpose(1, 0, 2, 3).reshape(-1, *self.rnn_states.shape[2:])
-        rnn_states_critic = self.rnn_states_critic[:-1].transpose(1, 0, 2, 3).reshape(-1, *self.rnn_states_critic.shape[2:])
+        rnn_states = self.rnn_states[:-1].permute(1, 0, 2, 3).reshape(-1, *self.rnn_states.shape[2:])
+        rnn_states_critic = self.rnn_states_critic[:-1].permute(1, 0, 2, 3).reshape(-1, *self.rnn_states_critic.shape[2:])
 
         if self.available_actions is not None:
             available_actions = _cast(self.available_actions[:-1])

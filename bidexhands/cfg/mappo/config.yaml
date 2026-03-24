@@ -1,12 +1,12 @@
 env_name: mappo
 algorithm_name: mappo
 experiment_name: check
-run_dir: ./logs
+run_dir: ./logs/exp4
 use_centralized_V: True
 use_obs_instead_of_state: False
 num_env_steps: 100000000
-episode_length: 8
-n_rollout_threads: 80
+episode_length: 125
+n_rollout_threads: 256
 n_eval_rollout_threads: 1
 use_linear_lr_decay: False
 hidden_size: 512
@@ -35,7 +35,7 @@ ppo_epoch: 5
 num_mini_batch: 1
 data_chunk_length: 
 value_loss_coef: 1
-entropy_coef: 0.0
+entropy_coef: 0.005 # explore a bit more
 max_grad_norm: 10
 huber_delta: 10.0
 use_recurrent_policy: False

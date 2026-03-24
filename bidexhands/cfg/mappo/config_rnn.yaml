@@ -1,17 +1,16 @@
-env_name: happo
-algorithm_name: happo
+# MAPPO config file for RNN policy (failed to run with 512 hidden size due to OOM) 
+env_name: mappo
+algorithm_name: mappo
 experiment_name: check
 run_dir: ./logs
 use_centralized_V: True
 use_obs_instead_of_state: False
-
-num_env_steps: 150000000 # total environment steps to train
-
-episode_length: 200 # shadow_hand_bottle_cap env episode length 
-n_rollout_threads: 8 # 80
+num_env_steps: 150000000 # max_iterations * num_envs * episode_length 
+episode_length: 125 # shadow_hand_bottle_cap env episode length
+n_rollout_threads: 8 # because of OOM 
 n_eval_rollout_threads: 1
 use_linear_lr_decay: False
-hidden_size: 512 # 512 
+hidden_size: 256 # because of OOM 
 use_render: False
 recurrent_N: 1
 use_single_network: False
@@ -22,11 +21,11 @@ eval_interval: 25
 log_interval: 25
 eval_episodes: 10000
 
-gamma: 0.99 # long-terrm horizon reward
+gamma: 0.995 # long-terrm horizon reward 
 gae_lambda: 0.95
 use_gae: True
 use_popart: True
-use_valuenorm: True
+use_valuenorm: False
 use_proper_time_limits: False
 
 kl_threshold: 0.016
@@ -34,13 +33,13 @@ ls_step: 10
 accept_ratio: 0.5
 clip_param: 0.2
 ppo_epoch: 5
-num_mini_batch: 4 # 16 # num of mini-batch to split each
-data_chunk_length: 10 # length of chunks to feed to RNN when using recurrent policy 
+num_mini_batch: 4 # num of mini-batch to split each
+data_chunk_length: 10 # length of chunks to feed to RNN when using recurrent policy
 value_loss_coef: 1
-entropy_coef: 0.02 # agent to explore more
+entropy_coef: 0.02 # agent to explore more 
 max_grad_norm: 10
 huber_delta: 10.0
-use_recurrent_policy: True # use Rnn policy instead of Mlp policy 
+use_recurrent_policy: True # use Rnn policy instead of Mlp policy
 use_naive_recurrent_policy: False
 use_max_grad_norm: True
 use_clipped_value_loss: True
@@ -48,8 +47,8 @@ use_huber_loss: True
 use_value_active_masks: False
 use_policy_active_masks: False
 
-lr: 3.e-4 # learning rate
-critic_lr: 3.e-4 # critic learning rate 
+lr: 3.e-4
+critic_lr: 3.e-4
 opti_eps: 1.e-5
 weight_decay: 0.0
 
@@ -60,7 +59,7 @@ use_orthogonal: True
 use_feature_normalization: True
 use_ReLU: True
 stacked_frames: 1
-layer_N: 2 # number of hidden layers for each actor and critic network
+layer_N: 4 # number of hidden layers for each actor and critic network 
 
 std_x_coef: 1
 std_y_coef: 0.5
