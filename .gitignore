@@ -150,3 +150,6 @@ __pycache__/
 # wandb files
 wandb/
 */wandb/
+
+# data files
+dataset/dataset_old/

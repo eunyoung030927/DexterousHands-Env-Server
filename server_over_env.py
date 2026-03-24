@@ -37,7 +37,7 @@ def get_server_args():
     args = get_args()
     
     # Training configuration (PPO)
-    args.cfg_train = "bidexhands/cfg/ppo/config.yaml"
+    args.cfg_train = "bidexhands/cfg/mappo/config.yaml"
     
     # Environment configuration (ShadowHandOver Task)
     args.cfg_env = "bidexhands/cfg/ShadowHandOver.yaml"

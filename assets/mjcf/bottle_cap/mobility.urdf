@@ -20,6 +20,7 @@
 		<axis xyz="0 1 0"/>
 		<child link="link_0"/>
 		<parent link="link_0_helper"/>
+		<dynamics damping="0.1" friction="0.1" stiffness="0.0"/>
 	</joint>
 	<link name="link_1">
 		<visual name="body-5">
@@ -107,5 +108,6 @@
 		<child link="link_0_helper"/>
 		<parent link="link_1"/>
 		<limit lower="0" upper="0.06400000000000006"/>
+		<mimic joint="joint_0" multiplier="0.002" offset="0"/>
 	</joint>
 </robot>

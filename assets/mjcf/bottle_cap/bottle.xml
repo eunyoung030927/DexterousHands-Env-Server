@@ -1,0 +1,51 @@
+<mujoco model="bottle_cap_screw_precision">
+    <compiler angle="radian" meshdir="textured_objs/"/>
+    
+    <default>
+        <geom condim="4" friction="1.5 0.1 0.1" solimp="0.9 0.95 0.001" solref="0.02 1"/>
+    </default>
+
+    <asset>
+        <mesh name="lid_7" file="original-7.obj" scale="0.15 0.15 0.15"/>
+        
+        <mesh name="body_4" file="original-4.obj" scale="0.15 0.15 0.15"/>
+        <mesh name="body_3" file="original-3.obj" scale="0.15 0.15 0.15"/>
+        <mesh name="body_8" file="original-8.obj" scale="0.15 0.15 0.15"/>
+        <mesh name="body_6" file="original-6.obj" scale="0.15 0.15 0.15"/>
+        <mesh name="body_2" file="original-2.obj" scale="0.15 0.15 0.15"/>
+        <mesh name="neck_5" file="original-5.obj" scale="0.15 0.15 0.15"/>
+    </asset>
+
+    <worldbody>
+        <body name="bottle_root" pos="0 0 0" euler="1.570796326794897 0 -1.570796326794897">
+            
+            <freejoint name="root_joint"/>
+            
+            <inertial pos="0 0 0" mass="0.3" diaginertia="0.002 0.002 0.002"/>
+
+            <geom type="mesh" mesh="body_4" />
+            <geom type="mesh" mesh="body_3" />
+            <geom type="mesh" mesh="body_8" />
+            <geom type="mesh" mesh="body_6" />
+            <geom type="mesh" mesh="body_2" />
+            <geom type="mesh" mesh="neck_5" />
+            
+            <body name="cap_elevator" pos="0.007005959241653967 0 0.007542109902568375">
+                <joint name="joint_2" type="slide" axis="0 1 0" range="0 0.06400000000000006" damping="0.5"/>
+
+                <body name="cap_lid" pos="0 0 0">
+                    <joint name="joint_0" type="hinge" axis="0 1 0" damping="0.2" friction="0.1"/>
+                    
+                    <geom type="mesh" mesh="lid_7" pos="-0.007005959241653967 0 -0.007542109902568375" 
+                          friction="2.5 0.1 0.1" condim="4" priority="1" rgba="0.8 0.2 0.2 1"/>
+                          
+                    <inertial pos="0 0 0" mass="0.02" diaginertia="0.0001 0.0001 0.0001"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <equality>
+        <joint joint1="joint_2" joint2="joint_0" polycoef="0 0.002 0 0 0" />
+    </equality>
+</mujoco>
