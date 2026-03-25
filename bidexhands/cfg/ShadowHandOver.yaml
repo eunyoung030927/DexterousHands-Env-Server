@@ -3,7 +3,7 @@
 # version 01: egg-mass-randomization-train
 env: 
   env_name: "shadow_hand_over"
-  numEnvs: 48 # test with 48, train with 4096
+  numEnvs: 1024 # test with 48, train with 4096
   envSpacing: 0.75
   episodeLength: 75
   enableDebugVis: False
