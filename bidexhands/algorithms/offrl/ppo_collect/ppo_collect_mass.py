@@ -135,6 +135,8 @@ class PPO:
 
             ep_buffers = [{'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
                           for _ in range(self.vec_env.num_envs)]
+            masses_off = []
+            task = self.vec_env.task
 
             while num_episodes < self.data_size:
                 actions, actions_log_prob, values, mu, sigma = self.actor_critic.act(current_obs, current_states)
@@ -156,16 +158,16 @@ class PPO:
                     ep_buffers[i]['dones'].append(dones_np[i])
 
                     if dones_np[i] > 0:
-                        if num_episodes < self.data_size and infos['successes'][i] > 0:
+                        if num_episodes < self.data_size:
                             states_off.append(np.array(ep_buffers[i]['states']))
                             next_states_off.append(np.array(ep_buffers[i]['next_states']))
                             actions_off.append(np.array(ep_buffers[i]['actions']))
                             rewards_off.append(np.array(ep_buffers[i]['rewards']).reshape(-1, 1))
                             dones_off.append(np.array(ep_buffers[i]['dones']).reshape(-1, 1) * 1.0)
                             reward_sum.append(cur_reward_sum[i].item())
+                            props = task.gym.get_actor_rigid_body_properties(task.envs[i], task.gym.find_actor_handle(task.envs[i], "object"))
+                            masses_off.append(props[0].mass)
                             num_episodes += 1
-                            if num_episodes % 100 == 0:
-                                print(f'Collected {num_episodes}/{self.data_size} successful episodes')
                         ep_buffers[i] = {'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
                         cur_reward_sum[i] = 0
 
@@ -182,6 +184,7 @@ class PPO:
             np.save(self.data_save+'/actions.npy', actions_off)
             np.save(self.data_save+'/rewards.npy', rewards_off)
             np.save(self.data_save+'/dones.npy', dones_off)
+            np.save(self.data_save+'/masses.npy', np.array(masses_off))
 
             print(f'Collected {num_episodes} episodes, {len(states_off)} transitions')
             print(f'Mean reward: {sum(reward_sum)/len(reward_sum)}')

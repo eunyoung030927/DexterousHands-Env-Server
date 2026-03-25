@@ -34,4 +34,4 @@ learn:
   log_interval: 1
   asymmetric: False
 
-  data_size: 1000000
+  data_size: 1000

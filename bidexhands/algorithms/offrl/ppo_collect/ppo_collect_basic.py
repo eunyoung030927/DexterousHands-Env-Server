@@ -127,47 +127,28 @@ class PPO:
 
         if self.is_testing:
 
-            num_episodes = 0
+            nums = 0
             reward_sum = []
             cur_reward_sum = torch.zeros(self.vec_env.num_envs, dtype=torch.float, device=self.device)
             current_obs = self.vec_env.reset()
             current_states = self.vec_env.get_state()
-
-            ep_buffers = [{'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
-                          for _ in range(self.vec_env.num_envs)]
-
-            while num_episodes < self.data_size:
+            while nums<self.data_size:
+                
+                nums += self.vec_env.num_envs
                 actions, actions_log_prob, values, mu, sigma = self.actor_critic.act(current_obs, current_states)
                 next_obs, rews, dones, infos = self.vec_env.step(actions)
                 next_states = self.vec_env.get_state()
 
                 cur_reward_sum[:] += rews
-                obs_np = current_obs.clone().detach().cpu().numpy()
-                next_obs_np = next_obs.clone().detach().cpu().numpy()
-                actions_np = actions.clone().detach().cpu().numpy().clip(-max_action, max_action)
-                rews_np = rews.clone().detach().cpu().numpy()
-                dones_np = dones.clone().detach().cpu().numpy()
+                new_ids = (dones > 0).nonzero(as_tuple=False)
+                reward_sum.extend(cur_reward_sum[new_ids][:, 0].detach().cpu().numpy().tolist())
+                cur_reward_sum[new_ids] = 0
 
-                for i in range(self.vec_env.num_envs):
-                    ep_buffers[i]['states'].append(obs_np[i])
-                    ep_buffers[i]['next_states'].append(next_obs_np[i])
-                    ep_buffers[i]['actions'].append(actions_np[i])
-                    ep_buffers[i]['rewards'].append(rews_np[i])
-                    ep_buffers[i]['dones'].append(dones_np[i])
-
-                    if dones_np[i] > 0:
-                        if num_episodes < self.data_size and infos['successes'][i] > 0:
-                            states_off.append(np.array(ep_buffers[i]['states']))
-                            next_states_off.append(np.array(ep_buffers[i]['next_states']))
-                            actions_off.append(np.array(ep_buffers[i]['actions']))
-                            rewards_off.append(np.array(ep_buffers[i]['rewards']).reshape(-1, 1))
-                            dones_off.append(np.array(ep_buffers[i]['dones']).reshape(-1, 1) * 1.0)
-                            reward_sum.append(cur_reward_sum[i].item())
-                            num_episodes += 1
-                            if num_episodes % 100 == 0:
-                                print(f'Collected {num_episodes}/{self.data_size} successful episodes')
-                        ep_buffers[i] = {'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
-                        cur_reward_sum[i] = 0
+                states_off.append(current_obs.clone().detach().cpu().numpy())
+                next_states_off.append(next_obs.clone().detach().cpu().numpy())
+                actions_off.append(actions.clone().detach().cpu().numpy().clip(-max_action,max_action))
+                rewards_off.append(rews.clone().detach().cpu().numpy().reshape(-1,1))
+                dones_off.append(dones.clone().detach().cpu().numpy().reshape(-1,1)*1.0)
 
                 current_obs.copy_(next_obs)
                 current_states.copy_(next_states)
@@ -177,14 +158,13 @@ class PPO:
             actions_off = np.vstack(actions_off)
             rewards_off = np.vstack(rewards_off)
             dones_off = np.vstack(dones_off)
-            np.save(self.data_save+'/states.npy', states_off)
-            np.save(self.data_save+'/next_states.npy', next_states_off)
-            np.save(self.data_save+'/actions.npy', actions_off)
-            np.save(self.data_save+'/rewards.npy', rewards_off)
-            np.save(self.data_save+'/dones.npy', dones_off)
-
-            print(f'Collected {num_episodes} episodes, {len(states_off)} transitions')
-            print(f'Mean reward: {sum(reward_sum)/len(reward_sum)}')
+            np.save(self.data_save+'/states.npy',states_off[0:self.data_size])
+            np.save(self.data_save+'/next_states.npy',next_states_off[0:self.data_size])
+            np.save(self.data_save+'/actions.npy',actions_off[0:self.data_size])
+            np.save(self.data_save+'/rewards.npy',rewards_off[0:self.data_size])
+            np.save(self.data_save+'/dones.npy',dones_off[0:self.data_size])
+            
+            print(sum(reward_sum)/len(reward_sum))
 
 
         else:
