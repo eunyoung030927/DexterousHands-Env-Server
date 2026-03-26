@@ -13,9 +13,28 @@ import torch
 import numpy as np
 import zmq
 import pickle
+import io
 import sys
 import os
 import traceback
+
+
+# ---------------------------------------------------------------------------
+# Compatibility shim: allow unpickling numpy 2.x arrays on numpy 1.x
+# numpy 2.0 renamed numpy.core → numpy._core; when a client serialises an
+# array with numpy 2.x, the pickle stream references numpy._core which does
+# not exist in numpy 1.x.  This custom Unpickler transparently redirects
+# those imports so that the server can deserialise without error.
+# ---------------------------------------------------------------------------
+class _NumpyCompatUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module.startswith("numpy._core"):
+            module = module.replace("numpy._core", "numpy.core", 1)
+        return super().find_class(module, name)
+
+
+def compat_loads(data: bytes):
+    return _NumpyCompatUnpickler(io.BytesIO(data)).load()
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +291,7 @@ def run_server():
         while True:
             try:
                 message = server_socket.recv()
-                cmd, data = pickle.loads(message)
+                cmd, data = compat_loads(message)
                 response = None
 
                 if cmd == "reset":
