@@ -4,9 +4,9 @@ Unified ZMQ Server for Bi-DexHands IsaacGym Environments
 Supports both SingleAgent and MultiAgent tasks via --task flag.
 
 Usage:
+    python bidexhands_server_env.py --task ShadowHandCatchOver2Underarm
     python bidexhands_server_env.py --task ShadowHandOver
-    python bidexhands_server_env.py --task ShadowHandBottleCap
-    python bidexhands_server_env.py --task ShadowHandBottleCap --host 0.0.0.0 --port 5556 --episode_length 125
+    python bidexhands_server_env.py --task ShadowHandBottleCap --task_type MultiAgent
 """
 import isaacgym
 import torch
@@ -37,42 +37,16 @@ SERVER_PORT = int(_pop_argv("--port", "5555"))
 
 
 # ---------------------------------------------------------------------------
-# Working directory: project root (DexterousHands/)
+# Working directory: bidexhands/ (where cfg/ lives, matching retrieve_cfg paths)
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-os.chdir(SCRIPT_DIR)
+BIDEXHANDS_DIR = os.path.join(SCRIPT_DIR, "bidexhands")
+os.chdir(BIDEXHANDS_DIR)
 sys.path.append(SCRIPT_DIR)
 
 from bidexhands.utils.config import get_args, load_cfg, parse_sim_params
 from bidexhands.utils.parse_task import parse_task
 from bidexhands.utils.process_marl import get_AgentIndex
-
-
-# ---------------------------------------------------------------------------
-# Task Registry
-# All config paths are relative to project root (CWD after os.chdir above).
-# To add a new task: copy an existing entry and adjust paths / dimensions.
-# ---------------------------------------------------------------------------
-TASK_CONFIGS = {
-    "ShadowHandOver": {
-        "task_type": "Python",
-        "cfg_train": "bidexhands/cfg/mappo/config.yaml",
-        "cfg_env": "bidexhands/cfg/ShadowHandOver.yaml",
-        "default_episode_length": 75,
-        "num_agents": 1,
-        "action_dim_per_agent": None,
-        "asymmetric_observations": False,
-    },
-    "ShadowHandBottleCap": {
-        "task_type": "MultiAgent",
-        "cfg_train": "bidexhands/cfg/ppo/config.yaml",
-        "cfg_env": "bidexhands/cfg/ShadowHandBottleCap_server.yaml",
-        "default_episode_length": 125,
-        "num_agents": 2,
-        "action_dim_per_agent": 26,
-        "asymmetric_observations": True,
-    },
-}
 
 
 # ---------------------------------------------------------------------------
@@ -120,12 +94,12 @@ class EnvAdapter:
     - step(action_flat) → (obs, reward, terminated, truncated, info)
     """
 
-    def __init__(self, env, task, task_config, device):
+    def __init__(self, env, task, task_type, device):
         self.env = env
         self.task = task
-        self.is_multi_agent = task_config["task_type"] == "MultiAgent"
-        self.num_agents = task_config["num_agents"]
-        self.action_dim_per_agent = task_config.get("action_dim_per_agent")
+        self.is_multi_agent = (task_type == "MultiAgent")
+        self.num_agents = env.num_agents
+        self.action_dim_per_agent = env.num_acts
         self.device = device
 
     # ----- reset ----------------------------------------------------------
@@ -223,23 +197,22 @@ def run_server():
         task_name = "ShadowHandOver"
         sys.argv.extend(["--task", task_name])
 
-    if task_name not in TASK_CONFIGS:
+    # Validate: cfg YAML must exist
+    cfg_yaml = os.path.join(BIDEXHANDS_DIR, "cfg", f"{task_name}.yaml")
+    if not os.path.exists(cfg_yaml):
         print(f"[Error] Unknown task: {task_name}")
-        print(f"  Supported: {list(TASK_CONFIGS.keys())}")
+        print(f"  No config found: {cfg_yaml}")
         sys.exit(1)
-
-    task_config = TASK_CONFIGS[task_name]
 
     # --- Ensure headless ---
     if "--headless" not in sys.argv:
         sys.argv.append("--headless")
 
-    # --- Banner ---
+    # --- Banner (partial — num_agents determined after env creation) ---
     print("=" * 60)
     print("  Bi-DexHands Unified ZMQ Server")
     print("=" * 60)
     print(f"  Task      : {task_name}")
-    print(f"  Task Type : {task_config['task_type']} ({task_config['num_agents']} agent(s))")
     print(f"  Host      : {SERVER_HOST}")
     print(f"  Port      : {SERVER_PORT}")
     print("=" * 60)
@@ -256,22 +229,12 @@ def run_server():
 
         # --- IsaacGym environment ------------------------------------------
         args = get_args()
-        args.cfg_train = task_config["cfg_train"]
-        args.cfg_env = task_config["cfg_env"]
-        args.task_type = task_config["task_type"]
         args.num_envs = 1
         args.compute_device_id = 0
         args.graphics_device_id = 0
 
         cfg, cfg_train, logdir = load_cfg(args)
         cfg["env"]["numEnvs"] = 1
-
-        # Episode length: CLI --episode_length overrides task default
-        if args.episode_length <= 0:
-            cfg["env"]["episodeLength"] = task_config["default_episode_length"]
-
-        if task_config.get("asymmetric_observations"):
-            cfg["env"]["asymmetric_observations"] = True
 
         # Asset root → absolute path
         assets_root = os.path.join(SCRIPT_DIR, "assets")
@@ -281,7 +244,7 @@ def run_server():
         sim_params = parse_sim_params(args, cfg, cfg_train)
 
         # Agent index: MultiAgent needs get_AgentIndex, SingleAgent uses 0
-        if task_config["task_type"] == "MultiAgent":
+        if args.task_type == "MultiAgent":
             agent_index = get_AgentIndex(cfg)
         else:
             agent_index = 0
@@ -289,22 +252,15 @@ def run_server():
         task_obj, env = parse_task(args, cfg, cfg_train, sim_params, agent_index)
         device = env.rl_device if hasattr(env, "rl_device") else torch.device("cuda:0")
 
-        adapter = EnvAdapter(env, task_obj, task_config, device)
+        adapter = EnvAdapter(env, task_obj, args.task_type, device)
 
         # Initial reset to determine dimensions
         init_obs = adapter.reset()
         obs_dim = int(init_obs.shape[0])
-        if task_config.get("action_dim_per_agent"):
-            act_dim = task_config["num_agents"] * task_config["action_dim_per_agent"]
-        elif hasattr(env, "action_space"):
-            act_dim = env.action_space.shape[0]
-        elif hasattr(env, "num_acts"):
-            act_dim = env.num_acts
-        else:
-            act_dim = None
-
+        act_dim = env.num_agents * env.num_acts if env.num_agents > 1 else env.num_acts
         episode_length = cfg["env"]["episodeLength"]
 
+        print(f"[Server] Task Type: {args.task_type} ({env.num_agents} agent(s))")
         print(f"[Server] Device: {device}")
         print(f"[Server] Obs dim: {obs_dim}, Act dim: {act_dim}")
         print(f"[Server] Episode length: {episode_length}")
@@ -338,8 +294,8 @@ def run_server():
                 elif cmd == "info":
                     response = ("ok", {
                         "task": task_name,
-                        "task_type": task_config["task_type"],
-                        "num_agents": task_config["num_agents"],
+                        "task_type": args.task_type,
+                        "num_agents": env.num_agents,
                         "obs_dim": obs_dim,
                         "act_dim": act_dim,
                         "episode_length": episode_length,
