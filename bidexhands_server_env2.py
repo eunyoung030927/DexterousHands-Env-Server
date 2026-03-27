@@ -369,10 +369,6 @@ def run_server():
         print(f"  No config found: {cfg_yaml}")
         sys.exit(1)
 
-    # --- Ensure headless ---
-    if "--headless" not in sys.argv:
-        sys.argv.append("--headless")
-
     # --- Banner ---
     print("=" * 60)
     print("  Bi-DexHands Unified ZMQ Server (v2 — parallel eval)")
@@ -406,18 +402,23 @@ def run_server():
                 response = None
 
                 if cmd == "init":
-                    if adapter is not None:
+                    num_envs = 1
+                    if isinstance(data, dict):
+                        num_envs = data.get("num_envs", 1)
+                    if adapter is not None and adapter.num_envs == num_envs:
+                        print(f"[Server] Re-init (same num_envs={num_envs}), reusing env...")
+                        step_count = 0
+                        adapter.reset()
+                        response = ("ok", metadata)
+                    elif adapter is not None:
                         response = ("error",
-                                    "Environment already initialized. "
-                                    "Send 'close' and restart server for different num_envs.")
+                                    f"Cannot change num_envs from {adapter.num_envs} to {num_envs} "
+                                    f"without server restart (PhysX limitation).")
                     else:
-                        num_envs = 1
-                        if isinstance(data, dict):
-                            num_envs = data.get("num_envs", 1)
                         print(f"[Server] init requested: num_envs={num_envs}")
                         adapter, metadata = _create_env(num_envs)
                         response = ("ok", metadata)
-                        print(f"[Server] Ready!")
+                    print(f"[Server] Ready!")
 
                 elif cmd == "reset":
                     if adapter is None:
@@ -467,10 +468,9 @@ def run_server():
                     response = ("ok", np.array([]))
 
                 elif cmd == "close":
-                    print("[Server] Shutting down (client requested)...")
+                    print("[Server] Client disconnected, resetting step count...")
+                    step_count = 0
                     response = ("ok", None)
-                    server_socket.send(pickle.dumps(response))
-                    break
 
                 else:
                     response = ("error", f"Unknown command: {cmd}")
