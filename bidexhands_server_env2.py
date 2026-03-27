@@ -183,9 +183,11 @@ class EnvAdapter:
 
     # --- num_envs == 1: legacy single-env interface -----------------------
     def _step_single_single(self, action_flat):
+        arr = np.array(action_flat, dtype=np.float32)
+        if arr.ndim > 1:
+            arr = arr.reshape(-1)  # (1, act_dim) → (act_dim,)
         action_tensor = torch.tensor(
-            np.array(action_flat, dtype=np.float32),
-            dtype=torch.float, device=self.device,
+            arr, dtype=torch.float, device=self.device,
         ).unsqueeze(0)  # (act_dim,) → (1, act_dim)
 
         obs_t, rew_t, done_t, info_raw = self.env.step(action_tensor)
