@@ -6,7 +6,7 @@ from bidexhands.algorithms.rl.trpo import TRPO
 
 def process_sarl(args, env, cfg_train, logdir):
     learn_cfg = cfg_train["learn"]
-    is_testing = learn_cfg["test"]
+    is_testing = args.test or learn_cfg["test"]
     # is_testing = True
     # Override resume and testing flags if they are passed as parameters.
     if args.model_dir != "":
