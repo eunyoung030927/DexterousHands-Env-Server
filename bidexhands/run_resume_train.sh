@@ -25,12 +25,12 @@ echo "[Batch 1] Done"
 # Batch 2: SwingCup + GraspAndPlace 병렬
 echo "[Batch 2] Starting DR: ShadowHandSwingCup, ShadowHandGraspAndPlace"
 python train_wandb.py --task=ShadowHandSwingCup --algo=ppo \
-  --model_dir=logs/v1/ShadowHandSwingCup/ppo/ppo_seed-1/model_1200.pt \
+  --model_dir=logs/ShadowHandSwingCup/ppo/ppo_seed-1/model_1200.pt \
   --max_iterations=2000 --headless \
   > $LOG_DIR/resume_dr_ShadowHandSwingCup.log 2>&1 &
 
 python train_wandb.py --task=ShadowHandGraspAndPlace --algo=ppo \
-  --model_dir=logs/v1/ShadowHandGraspAndPlace/ppo/ppo_seed-1/model_1200.pt \
+  --model_dir=logs/ShadowHandGraspAndPlace/ppo/ppo_seed-1/model_1200.pt \
   --max_iterations=2000 --headless \
   > $LOG_DIR/resume_dr_ShadowHandGraspAndPlace.log 2>&1 &
 wait
