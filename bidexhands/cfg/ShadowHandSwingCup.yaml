@@ -19,8 +19,7 @@ env:
   startPositionNoise: 0.0
   startRotationNoise: 0.0
 
-  resetPositionNoise: 0.01 # can be used to add noise to the reset position 
-  resetRotationNoise: 0.0
+  resetPositionNoise: 0.0 # positional noise
   resetDofPosRandomInterval: 0.0
   resetDofVelRandomInterval: 0.0
 
@@ -54,15 +53,15 @@ task:
   randomization_params:
     actor_params:
       object:
-        scale:
-          range: [0.95, 1.05]
-          operation: "scaling"
-          distribution: "uniform"
-          schedule: "linear"  # "linear" will scale the current random sample by ``min(current num steps, schedule_steps) / schedule_steps`
-          schedule_steps: 30000
+        # scale:
+        #   range: [0.95, 1.05]
+        #   operation: "scaling"
+        #   distribution: "uniform"
+        #   schedule: "linear"  # "linear" will scale the current random sample by ``min(current num steps, schedule_steps) / schedule_steps`
+        #   schedule_steps: 30000
         rigid_body_properties:
           mass: 
-            range: [0.5, 1.5]
+            range: [0.8, 1.2]
             operation: "scaling"
             distribution: "uniform"
             schedule: "linear"  # "linear" will scale the current random sample by ``min(current num steps, schedule_steps) / schedule_steps`
@@ -70,7 +69,7 @@ task:
         rigid_shape_properties:
           friction:
             num_buckets: 250
-            range: [0.7, 1.3]
+            range: [0.85, 1.15]
             operation: "scaling"
             distribution: "uniform"
             schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
