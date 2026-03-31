@@ -20,6 +20,7 @@ env:
   startRotationNoise: 0.0
 
   resetPositionNoise: 0.0 # positional noise
+  resetRotationNoise: 0.0
   resetDofPosRandomInterval: 0.0
   resetDofVelRandomInterval: 0.0
 
