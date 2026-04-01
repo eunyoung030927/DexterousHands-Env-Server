@@ -1000,7 +1000,7 @@ class ShadowHandSwingCup(BaseTask):
         rand_floats = torch_rand_float(-1.0, 1.0, (len(env_ids), 4), device=self.device)
         target_rot = torch.ones_like(rand_floats, device=self.device)
 
-        new_rot = quat_from_angle_axis(target_rot[:, 0] * 1.5 * np.pi, self.z_unit_tensor[env_ids])
+        new_rot = quat_from_angle_axis(target_rot[:, 0] * 1.0 * np.pi, self.z_unit_tensor[env_ids]) # make easier to reach the goal
 
         self.goal_states[env_ids, 0:3] = self.goal_init_state[env_ids, 0:3]
         # self.goal_states[env_ids, 1] -= 0.25
@@ -1418,8 +1418,8 @@ def compute_hand_reward(
     # resets = torch.where(left_hand_dist >= 0.2, torch.ones_like(resets), resets)
 
     # Find out which envs hit the goal and update successes count
-    successes = torch.where(successes == 0, 
-                    torch.where(rot_dist < 0.785, torch.ones_like(successes), successes), successes)
+    successes = torch.where(successes == 0,
+                    torch.where(rot_dist < 1.65, torch.ones_like(successes), successes), successes)
 
 
     resets = torch.where(progress_buf >= max_episode_length, torch.ones_like(resets), resets)
