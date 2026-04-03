@@ -21,7 +21,7 @@ from bidexhands.utils.process_marl import get_AgentIndex
 from bidexhands.algorithms.rl.ppo import PPO
 from bidexhands.utils.torch_jit_utils import quat_mul, quat_conjugate
 
-SUCCESS_THRESHOLD = 1  # radians (~45 degrees)
+SUCCESS_THRESHOLD = 0.785  # radians (~45 degrees)
 
 def patch_compute_reward(task):
     """Wrap compute_reward to print episode-level rot_dist/success/reward stats"""

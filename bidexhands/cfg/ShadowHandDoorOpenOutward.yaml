@@ -66,7 +66,7 @@ task:
             operation: "scaling"
             distribution: "uniform"
             schedule: "linear"  # "linear" will scale the current random sample by ``min(current num steps, schedule_steps) / schedule_steps`
-            schedule_steps: 30000
+            schedule_steps: 60000
         rigid_shape_properties:
           friction:
             num_buckets: 250
@@ -74,26 +74,26 @@ task:
             operation: "scaling"
             distribution: "uniform"
             schedule: "linear"  # "linear" will scale the current random sample by `min(current num steps, schedule_steps) / schedule_steps`
-            schedule_steps: 30000
+            schedule_steps: 60000
         # dof_properties:
         #   damping:
         #     range: [0.8, 1.2]
         #     operation: "scaling"
         #     distribution: "uniform"
         #     schedule: "linear"
-        #     schedule_steps: 30000
+        #     schedule_steps: 60000
         #   stiffness:
         #     range: [0.8, 1.2]
         #     operation: "scaling"
         #     distribution: "uniform"
         #     schedule: "linear"
-        #     schedule_steps: 30000
+        #     schedule_steps: 60000
         #   friction:
         #     range: [0.5, 2.0]
         #     operation: "scaling"
         #     distribution: "uniform"
         #     schedule: "linear"
-        #     schedule_steps: 30000
+        #     schedule_steps: 60000
 
 sim:
   substeps: 2

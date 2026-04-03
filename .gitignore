@@ -130,6 +130,7 @@ dmypy.json
 
 bidexhands/logs/
 bidexhands/runs/
+bidexhands/run_logs/
 # contact buffer and other info created in running
 bidexhands/runs
 # too large files in assets
