@@ -56,11 +56,15 @@ def train_collection():
             print("======================================================")
             
             # 수집할 에피소드 수 설정 (필요시 args로 받아도 됨)
-            COLLECT_EPISODES = 2048  
+            COLLECT_EPISODES = 1000
             SAVE_NAME = "mappo_dataset"
             
             # runner.py에 추가한 collect_data 함수 호출
-            runner.collect_data(total_episodes=COLLECT_EPISODES, save_name=SAVE_NAME)
+            runner.collect_data(
+                total_episodes=COLLECT_EPISODES,
+                save_name=SAVE_NAME,
+                multi_to_single=args.multi_to_single,
+            )
         else:
             print("[Error] --model_dir is required for data collection script!")
             print("Please provide the path to the trained model folder.")
@@ -90,9 +94,6 @@ if __name__ == '__main__':
     set_np_formatting()
     args = get_args()
     cfg, cfg_train, logdir = load_cfg(args)
-
-    print("🔥🔥 Force Override: asymmetric_observations = True 🔥🔥")
-    cfg["env"]["asymmetric_observations"] = True  # 강제 주입
 
     sim_params = parse_sim_params(args, cfg, cfg_train)
     

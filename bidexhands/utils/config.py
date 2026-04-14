@@ -261,7 +261,9 @@ def get_args(benchmark=False, use_rlg_config=False, task_name="", algo=""):
         {"name": "--model_dir", "type": str, "default": "",
             "help": "Choose a model dir"},
         {"name": "--datatype", "type": str, "default": "random",
-            "help": "Choose an offline datatype"}]
+            "help": "Choose an offline datatype"},
+        {"name": "--multi_to_single", "action": "store_true", "default": False,
+            "help": "Convert multi-agent collected data to single-agent format"}]
 
     if benchmark:
         custom_parameters += [{"name": "--num_proc", "type": int, "default": 1, "help": "Number of child processes to launch"},

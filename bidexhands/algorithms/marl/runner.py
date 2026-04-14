@@ -410,37 +410,35 @@ class Runner:
 
 
     @torch.no_grad()
-    def collect_data(self, total_episodes, save_name="mappo_dataset"):
-        print(f"Start collecting data for {total_episodes} episodes...")
-        
-        # 1. 데이터 저장소 초기화 (요청하신 파일명대로 키 설정)
-        data_storage = {
-            "states": [],      # (s) Current Observation
-            "next_states": [], # (s') Next Observation
-            "actions": [],     # (a) Action
-            "rewards": [],     # (r) Reward
-            "dones": []        # (d) Done
-        }
+    def collect_data(self, total_episodes, save_name="mappo_dataset", multi_to_single=False):
+        print(f"Start collecting data for {total_episodes} successful episodes...")
 
-        # 2. 환경 및 변수 초기화
+        # 1. 환경별 에피소드 버퍼 + 성공 에피소드 축적용
+        ep_buffers = [
+            {'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
+            for _ in range(self.n_rollout_threads)
+        ]
+        completed = {'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
+
+        # 2. 환경 초기화
         obs, share_obs, _ = self.envs.reset()
-        
+
         rnn_states = torch.zeros(self.n_rollout_threads, self.num_agents, self.recurrent_N, self.hidden_size, device=self.device)
         masks = torch.ones(self.n_rollout_threads, self.num_agents, 1, device=self.device)
 
         episode_count = 0
-        last_print_count = -1
+        total_episodes_seen = 0
+        cur_reward_sum = torch.zeros(self.n_rollout_threads, device=self.device)
+        reward_sums = []
 
-        # 3. 데이터 수집 루프
+        # 3. 수집 루프
         while episode_count < total_episodes:
+            # step 전 obs 백업
+            current_obs = obs.clone()
+
+            # Action 추출
             actions_list = []
             temp_rnn_states_list = []
-            
-            # [중요] 행동하기 전의 상태(s) 저장
-            # obs: [n_threads, n_agents, dim] -> CPU로 이동 후 저장
-            data_storage["states"].append(obs.cpu().numpy())
-
-            # --- [Action 추출] ---
             for agent_id in range(self.num_agents):
                 self.trainer[agent_id].prep_rollout()
                 action, temp_rnn_state = self.trainer[agent_id].policy.act(
@@ -454,57 +452,139 @@ class Runner:
 
             actions = actions_list
             next_rnn_states = torch.stack(temp_rnn_states_list, dim=1)
-            
-            # Action 저장 (a)
             actions_tensor = torch.stack(actions_list, dim=1)
-            data_storage["actions"].append(actions_tensor.cpu().numpy())
 
-            # --- [환경 진행 (Step)] ---
-            # 여기서 obs가 '다음 상태(next_state)'로 업데이트됩니다.
+            # 환경 진행
             obs, share_obs, rewards, dones, infos, _ = self.envs.step(actions)
-            
-            # [중요] 행동한 후의 상태(s') 저장
-            data_storage["next_states"].append(obs.cpu().numpy())
-            
-            # Reward(r) 및 Done(d) 저장
-            data_storage["rewards"].append(rewards.cpu().numpy())
-            data_storage["dones"].append(dones.cpu().numpy())
 
-            # --- [종료 처리 및 RNN 마스킹] ---
+            # numpy 변환
+            obs_np = current_obs.cpu().numpy()       # [n_threads, n_agents, obs_dim]
+            next_obs_np = obs.cpu().numpy()           # [n_threads, n_agents, obs_dim]
+            actions_np = actions_tensor.cpu().numpy().clip(-1.0, 1.0) # [n_threads, n_agents, act_dim]
+            rewards_np = rewards.cpu().numpy()        # [n_threads, n_agents, 1]
+            dones_np = dones.cpu().numpy()            # [n_threads, n_agents, 1]
+
+            # 에피소드 리워드 누적
+            cur_reward_sum += rewards[:, :, 0].mean(dim=1)
+
+            # 종료 처리
             dones_env = torch.all(dones, dim=1)
-            
+            successes = self.envs.task.extras['successes']  # [n_threads]
+
+            # 환경별 버퍼에 transition 추가 + done 시 성공 판정
+            for i in range(self.n_rollout_threads):
+                ep_buffers[i]['states'].append(obs_np[i])
+                ep_buffers[i]['next_states'].append(next_obs_np[i])
+                ep_buffers[i]['actions'].append(actions_np[i])
+                ep_buffers[i]['rewards'].append(rewards_np[i])
+                ep_buffers[i]['dones'].append(dones_np[i])
+
+                if dones_env[i]:
+                    total_episodes_seen += 1
+                    if episode_count < total_episodes and successes[i] > 0:
+                        completed['states'].append(np.array(ep_buffers[i]['states']))
+                        completed['next_states'].append(np.array(ep_buffers[i]['next_states']))
+                        completed['actions'].append(np.array(ep_buffers[i]['actions']))
+                        completed['rewards'].append(np.array(ep_buffers[i]['rewards']))
+                        completed['dones'].append(np.array(ep_buffers[i]['dones']))
+                        reward_sums.append(cur_reward_sum[i].item())
+                        episode_count += 1
+                    ep_buffers[i] = {'states': [], 'next_states': [], 'actions': [], 'rewards': [], 'dones': []}
+                    cur_reward_sum[i] = 0
+
+            # RNN 상태 및 마스크 리셋
             next_rnn_states[dones_env == True] = 0
             rnn_states = next_rnn_states
-            
             masks = torch.ones(self.n_rollout_threads, self.num_agents, 1, device=self.device)
             masks[dones_env == True] = 0
 
-            episode_count += torch.sum(dones_env).item()
-            
             # 진행상황 출력
-            if episode_count > last_print_count and episode_count % 100 == 0:
-                print(f"Collecting... {int(episode_count)} / {total_episodes} episodes")
-                last_print_count = episode_count
+            if episode_count > 0 and episode_count % 100 == 0 and episode_count != getattr(self, '_last_print', -1):
+                self._last_print = episode_count
+                success_rate = episode_count / max(total_episodes_seen, 1) * 100
+                print(f"Collected {episode_count}/{total_episodes} successful episodes "
+                      f"(seen: {total_episodes_seen}, success rate: {success_rate:.1f}%)")
 
-        # 4. 파일 저장
+        # 4. 저장
         print("\nSaving data as individual .npy files...")
-        
+
         save_folder_path = os.path.join(self.model_dir, save_name)
         if not os.path.exists(save_folder_path):
             os.makedirs(save_folder_path)
-        
-        for key, value_list in data_storage.items():
-            # 리스트들을 하나의 큰 배열로 합침 (Steps * Threads, Agents, Dim)
-            arr = np.concatenate(value_list, axis=0)
-            
+
+        data = {}
+        for key in completed:
+            data[key] = np.vstack(completed[key])
+
+        # --- multi_to_single 변환 ---
+        if multi_to_single:
+            data = self._convert_multi_to_single(data)
+            print("[multi_to_single] Converted to single-agent format")
+
+        for key in data:
             file_path = os.path.join(save_folder_path, f"{key}.npy")
-            np.save(file_path, arr)
-            print(f"Saved: {file_path} (Shape: {arr.shape})")
-        
-        print(f"✅ All data saved successfully in folder: {save_folder_path}")
-        
+            np.save(file_path, data[key])
+            print(f"Saved: {file_path} (Shape: {data[key].shape})")
+
+        total_transitions = data['states'].shape[0]
+        success_rate = episode_count / max(total_episodes_seen, 1) * 100
+        print(f"\nCollected {episode_count} successful episodes, {total_transitions} transitions")
+        print(f"Total episodes seen: {total_episodes_seen} (success rate: {success_rate:.1f}%)")
+        if reward_sums:
+            print(f"Mean episode reward (successful): {sum(reward_sums)/len(reward_sums):.2f}")
+
         return save_folder_path
 
+    def _convert_multi_to_single(self, data):
+        """
+        Multi-Agent 형식 데이터를 Single-Agent 형식으로 변환.
+
+        Multi-Agent 형식:
+            states/next_states: (T, n_agents, obs_dim)  e.g. (T, 2, 221)
+                Agent 0: [오른손(H) | 물체(N)]
+                Agent 1: [왼손(H)   | 물체(N)]
+            actions: (T, n_agents, act_dim)  e.g. (T, 2, 26)
+            rewards: (T, n_agents, 1)        e.g. (T, 2, 1) — 3차원
+            dones:   (T, n_agents)            e.g. (T, 2)   — 2차원 (unsqueeze 없음)
+
+        Single-Agent 형식 (ppo_collect 호환):
+            states/next_states: (T, 2H + N)  e.g. (T, 420)
+                [오른손(H) | 왼손(H) | 물체(N)]
+            actions: (T, 2 * act_dim)  e.g. (T, 52)
+            rewards: (T, 1)  float
+            dones:   (T, 1)  float
+        """
+        H = self.envs.task.num_hand_obs  # 199 or 187
+
+        converted = {}
+
+        # --- obs 변환 ---
+        for obs_key in ['states', 'next_states']:
+            obs_multi = data[obs_key]                    # (T, 2, H+N)
+            right_hand = obs_multi[:, 0, :H]             # (T, H)
+            left_hand  = obs_multi[:, 1, :H]             # (T, H)
+            object_obs = obs_multi[:, 0, H:]             # (T, N)
+            converted[obs_key] = np.concatenate([right_hand, left_hand, object_obs], axis=1)
+
+        # --- action 변환 ---
+        actions_multi = data['actions']                   # (T, 2, A)
+        converted['actions'] = np.concatenate([
+            actions_multi[:, 0, :],                       # 오른손
+            actions_multi[:, 1, :],                       # 왼손
+        ], axis=1)                                        # (T, 2A)
+
+        # --- reward 변환 (양쪽 동일, 한쪽만 취함) ---
+        converted['rewards'] = data['rewards'][:, 0, :]   # (T, 1)
+
+        # --- done 변환 ---
+        # ppo_collect 호환: * 1.0 으로 float 변환 + (T, 1) shape 보장
+        dones = data['dones']
+        if dones.ndim == 3:
+            converted['dones'] = dones[:, 0, :] * 1.0     # (T, 2, 1) → (T, 1) float
+        else:
+            converted['dones'] = dones[:, 0:1] * 1.0       # (T, 2) → (T, 1) float
+
+        return converted
 
     @torch.no_grad()
     def compute(self):
